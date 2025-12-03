@@ -32,6 +32,13 @@ class TaskListViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun insertListWithCallback(taskList: TaskList, callback: (Long) -> Unit) {
+        viewModelScope.launch {
+            val newListId = taskListDao.insertList(taskList)
+            callback(newListId)
+        }
+    }
+
     fun deleteList(taskList: TaskList) {
         viewModelScope.launch {
             taskListDao.deleteList(taskList)
