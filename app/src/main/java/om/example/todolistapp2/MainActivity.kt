@@ -1,13 +1,16 @@
 package com.example.todolistapp2
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.EditText
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolistapp2.adapter.TaskListAdapter
 import com.example.todolistapp2.model.TaskList
+import com.example.todolistapp2.viewmodel.TaskListViewModel
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlin.random.Random
 
@@ -15,8 +18,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: TaskListAdapter
-    private val taskLists = mutableListOf<TaskList>()
-    private var nextId = 1
+    private val viewModel: TaskListViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,22 +28,22 @@ class MainActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerViewLists)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        adapter = TaskListAdapter(taskLists) { taskList ->
-            // TODO: Navegar a la pantalla de tareas
-            // Por ahora solo mostramos un mensaje
-            showMessage("Clicked en: ${taskList.name}")
+        adapter = TaskListAdapter { taskList ->
+            openTasksActivity(taskList)
         }
 
         recyclerView.adapter = adapter
+
+        // Observar cambios en las listas
+        viewModel.allListsWithCount.observe(this) { listsWithCount ->
+            adapter.submitList(listsWithCount)
+        }
 
         // Configurar botón flotante
         val fabAddList: FloatingActionButton = findViewById(R.id.fabAddList)
         fabAddList.setOnClickListener {
             showAddListDialog()
         }
-
-        // Añadir algunas listas de ejemplo
-        addSampleLists()
     }
 
     private fun showAddListDialog() {
@@ -55,11 +57,10 @@ class MainActivity : AppCompatActivity() {
                 val listName = editText.text.toString()
                 if (listName.isNotBlank()) {
                     val newList = TaskList(
-                        id = nextId++,
                         name = listName,
                         color = getRandomColor()
                     )
-                    adapter.addList(newList)
+                    viewModel.insertList(newList)
                 }
             }
             .setNegativeButton("Cancelar", null)
@@ -81,21 +82,10 @@ class MainActivity : AppCompatActivity() {
         return colors[Random.nextInt(colors.size)]
     }
 
-    private fun addSampleLists() {
-        val sampleLists = listOf(
-            TaskList(nextId++, "Compras", 0xFF4CAF50.toInt(), 5),
-            TaskList(nextId++, "Trabajo", 0xFF2196F3.toInt(), 3),
-            TaskList(nextId++, "Personal", 0xFFE91E63.toInt(), 7)
-        )
-
-        taskLists.addAll(sampleLists)
-        adapter.notifyDataSetChanged()
-    }
-
-    private fun showMessage(message: String) {
-        AlertDialog.Builder(this)
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .show()
+    private fun openTasksActivity(taskList: TaskList) {
+        val intent = Intent(this, TasksActivity::class.java)
+        intent.putExtra("LIST_ID", taskList.id)
+        intent.putExtra("LIST_NAME", taskList.name)
+        startActivity(intent)
     }
 }

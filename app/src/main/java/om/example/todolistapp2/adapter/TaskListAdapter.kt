@@ -4,24 +4,27 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolistapp2.R
 import com.example.todolistapp2.model.TaskList
+import com.example.todolistapp2.model.TaskListWithCount
 
 class TaskListAdapter(
-    private val taskLists: MutableList<TaskList>,
     private val onListClick: (TaskList) -> Unit
-) : RecyclerView.Adapter<TaskListAdapter.TaskListViewHolder>() {
+) : ListAdapter<TaskListWithCount, TaskListAdapter.TaskListViewHolder>(DiffCallback()) {
 
     inner class TaskListViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val colorIndicator: View = itemView.findViewById(R.id.colorIndicator)
         val textViewListName: TextView = itemView.findViewById(R.id.textViewListName)
         val textViewTaskCount: TextView = itemView.findViewById(R.id.textViewTaskCount)
 
-        fun bind(taskList: TaskList) {
+        fun bind(taskListWithCount: TaskListWithCount) {
+            val taskList = taskListWithCount.taskList
             colorIndicator.setBackgroundColor(taskList.color)
             textViewListName.text = taskList.name
-            textViewTaskCount.text = "${taskList.taskCount} tareas"
+            textViewTaskCount.text = "${taskListWithCount.taskCount} tareas"
 
             itemView.setOnClickListener {
                 onListClick(taskList)
@@ -36,13 +39,16 @@ class TaskListAdapter(
     }
 
     override fun onBindViewHolder(holder: TaskListViewHolder, position: Int) {
-        holder.bind(taskLists[position])
+        holder.bind(getItem(position))
     }
 
-    override fun getItemCount(): Int = taskLists.size
+    private class DiffCallback : DiffUtil.ItemCallback<TaskListWithCount>() {
+        override fun areItemsTheSame(oldItem: TaskListWithCount, newItem: TaskListWithCount): Boolean {
+            return oldItem.taskList.id == newItem.taskList.id
+        }
 
-    fun addList(taskList: TaskList) {
-        taskLists.add(taskList)
-        notifyItemInserted(taskLists.size - 1)
+        override fun areContentsTheSame(oldItem: TaskListWithCount, newItem: TaskListWithCount): Boolean {
+            return oldItem == newItem
+        }
     }
 }
