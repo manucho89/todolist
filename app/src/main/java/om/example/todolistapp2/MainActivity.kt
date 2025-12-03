@@ -1,28 +1,62 @@
 package com.example.todolistapp2
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.EditText
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolistapp2.adapter.TaskListAdapter
 import com.example.todolistapp2.model.TaskList
 import com.example.todolistapp2.viewmodel.TaskListViewModel
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.switchmaterial.SwitchMaterial
 import kotlin.random.Random
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: TaskListAdapter
+    private lateinit var switchTheme: SwitchMaterial
     private val viewModel: TaskListViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Aplicar tema guardado ANTES de setContentView
+        val sharedPreferences = getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+        val isDarkMode = sharedPreferences.getBoolean("dark_mode", false)
+        if (isDarkMode) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        } else {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        }
+
         setContentView(R.layout.activity_main)
+
+        // Configurar switch de tema
+        switchTheme = findViewById(R.id.switchTheme)
+        switchTheme.isChecked = isDarkMode
+
+        // Configurar listener del switch
+        switchTheme.setOnCheckedChangeListener { _, isChecked ->
+            // Guardar preferencia
+            sharedPreferences.edit().putBoolean("dark_mode", isChecked).apply()
+
+            // Cambiar tema
+            if (isChecked) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            }
+
+            // Recrear activity para aplicar el tema inmediatamente
+            recreate()
+        }
 
         // Configurar RecyclerView
         recyclerView = findViewById(R.id.recyclerViewLists)
@@ -68,7 +102,7 @@ class MainActivity : AppCompatActivity() {
     private fun showEditListDialog(taskList: TaskList) {
         val editText = EditText(this)
         editText.setText(taskList.name)
-        editText.setSelection(taskList.name.length) // Cursor al final
+        editText.setSelection(taskList.name.length)
 
         AlertDialog.Builder(this)
             .setTitle("Editar nombre de lista")

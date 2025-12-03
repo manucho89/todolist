@@ -1,7 +1,12 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.ToDoListApp" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+<resources>
+    <style name="Base.Theme.ToDoListApp2" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#FFBB86FC</item>
+        <item name="colorPrimaryVariant">#FF3700B3</item>
+        <item name="colorOnPrimary">#FF000000</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowBackground">#FF121212</item>
     </style>
+
+    <style name="Theme.ToDoListApp2" parent="Base.Theme.ToDoListApp2" />
+    <style name="Theme.ToDoListApp" parent="Base.Theme.ToDoListApp2" />
 </resources>
