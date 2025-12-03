@@ -28,9 +28,14 @@ class MainActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerViewLists)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        adapter = TaskListAdapter { taskList ->
-            openTasksActivity(taskList)
-        }
+        adapter = TaskListAdapter(
+            onListClick = { taskList ->
+                openTasksActivity(taskList)
+            },
+            onListLongClick = { taskList ->
+                showListOptionsDialog(taskList)
+            }
+        )
 
         recyclerView.adapter = adapter
 
@@ -44,6 +49,50 @@ class MainActivity : AppCompatActivity() {
         fabAddList.setOnClickListener {
             showAddListDialog()
         }
+    }
+
+    private fun showListOptionsDialog(taskList: TaskList) {
+        val options = arrayOf("✏️ Editar nombre", "🗑️ Eliminar lista")
+
+        AlertDialog.Builder(this)
+            .setTitle(taskList.name)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showEditListDialog(taskList)
+                    1 -> showDeleteListConfirmation(taskList)
+                }
+            }
+            .show()
+    }
+
+    private fun showEditListDialog(taskList: TaskList) {
+        val editText = EditText(this)
+        editText.setText(taskList.name)
+        editText.setSelection(taskList.name.length) // Cursor al final
+
+        AlertDialog.Builder(this)
+            .setTitle("Editar nombre de lista")
+            .setView(editText)
+            .setPositiveButton("Guardar") { _, _ ->
+                val newName = editText.text.toString()
+                if (newName.isNotBlank()) {
+                    val updatedList = taskList.copy(name = newName)
+                    viewModel.updateList(updatedList)
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun showDeleteListConfirmation(taskList: TaskList) {
+        AlertDialog.Builder(this)
+            .setTitle("Eliminar lista")
+            .setMessage("¿Estás seguro de que quieres eliminar '${taskList.name}'? Todas las tareas de esta lista también se eliminarán.")
+            .setPositiveButton("Eliminar") { _, _ ->
+                viewModel.deleteList(taskList)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun showAddListDialog() {

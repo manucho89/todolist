@@ -39,6 +39,12 @@ class TaskListViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun updateList(taskList: TaskList) {
+        viewModelScope.launch {
+            taskListDao.updateList(taskList)
+        }
+    }
+
     fun deleteList(taskList: TaskList) {
         viewModelScope.launch {
             taskListDao.deleteList(taskList)

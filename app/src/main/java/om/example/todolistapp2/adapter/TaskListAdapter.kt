@@ -12,7 +12,8 @@ import com.example.todolistapp2.model.TaskList
 import com.example.todolistapp2.model.TaskListWithCount
 
 class TaskListAdapter(
-    private val onListClick: (TaskList) -> Unit
+    private val onListClick: (TaskList) -> Unit,
+    private val onListLongClick: (TaskList) -> Unit
 ) : ListAdapter<TaskListWithCount, TaskListAdapter.TaskListViewHolder>(DiffCallback()) {
 
     inner class TaskListViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -28,6 +29,11 @@ class TaskListAdapter(
 
             itemView.setOnClickListener {
                 onListClick(taskList)
+            }
+
+            itemView.setOnLongClickListener {
+                onListLongClick(taskList)
+                true
             }
         }
     }
