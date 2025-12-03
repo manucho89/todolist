@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar Lista - ToDoList</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            text-align: center;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: scale(1.05);
+        }
+        .loading {
+            font-size: 1.1em;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 ToDoList</h1>
+        <p id="message">Redirigiendo a la app...</p>
+        <div class="spinner" id="spinner"></div>
+        <p class="loading">Si no se abre automáticamente, haz clic en el botón:</p>
+        <a href="#" id="openButton" class="button">Abrir en la App</a>
+    </div>
+
+    <script>
+        // Obtener parámetro 'data' de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const data = urlParams.get('data');
+
+        if (data) {
+            // Crear deep link
+            const deepLink = `todolist://share?data=${data}`;
+            
+            // Actualizar el botón
+            document.getElementById('openButton').href = deepLink;
+
+            // Intentar abrir automáticamente después de 1 segundo
+            setTimeout(() => {
+                window.location.href = deepLink;
+                
+                // Cambiar mensaje después de intentar abrir
+                setTimeout(() => {
+                    document.getElementById('message').textContent = '¿No se abrió la app?';
+                    document.getElementById('spinner').style.display = 'none';
+                }, 2000);
+            }, 1000);
+        } else {
+            document.getElementById('message').textContent = 'Enlace inválido';
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('openButton').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
