@@ -9,7 +9,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.todolistapp2"
+        applicationId = "com.manusal.todolists"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -17,6 +17,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    signingConfigs {
+        create("release") {
+            storeFile = file("C:\\Users\\Manu\\Documents\\v1.0 keystore") // o .jks, según se llame tu archivo
+            storePassword = "la_misma_que_pusiste_en_el_asistente"
+            keyAlias = "key0"          // el alias que aparece en la ventana
+            keyPassword = "la_misma_que_pusiste_en_el_asistente"
+        }
 
     buildTypes {
         release {
@@ -57,4 +64,4 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
     implementation("androidx.activity:activity-ktx:1.8.2")
-}
+}}

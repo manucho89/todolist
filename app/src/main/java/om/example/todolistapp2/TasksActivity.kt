@@ -3,15 +3,19 @@ package com.example.todolistapp2
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.util.Base64
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolistapp2.adapter.TaskAdapter
@@ -19,11 +23,14 @@ import com.example.todolistapp2.model.SharedTask
 import com.example.todolistapp2.model.SharedTaskList
 import com.example.todolistapp2.model.Task
 import com.example.todolistapp2.model.TaskList
+import com.example.todolistapp2.utils.SwipeToDeleteCallback
 import com.example.todolistapp2.viewmodel.TaskListViewModel
 import com.example.todolistapp2.viewmodel.TaskViewModel
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
+import java.util.Locale
 
 class TasksActivity : AppCompatActivity() {
 
@@ -35,6 +42,26 @@ class TasksActivity : AppCompatActivity() {
     private var listName: String = ""
     private var listColor: Int = 0
     private var currentTasks: List<Task> = emptyList()
+
+    // Launcher para reconocimiento de voz
+    private val speechRecognizerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.get(0) ?: return@registerForActivityResult
+
+            // Crear la tarea con el texto dictado
+            if (spokenText.isNotBlank()) {
+                val newTask = Task(
+                    title = spokenText,
+                    listId = listId
+                )
+                taskViewModel.insertTask(newTask)
+                Toast.makeText(this, "Tarea creada: $spokenText", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +82,7 @@ class TasksActivity : AppCompatActivity() {
         Log.d("TasksActivity", "LIST_NAME recibido: $listName")
 
         setupUI()
+        setupSwipeToDelete()
         observeTasks()
     }
 
@@ -62,6 +90,7 @@ class TasksActivity : AppCompatActivity() {
         // Configurar Toolbar
         val toolbar: MaterialToolbar = findViewById(R.id.toolbar)
         toolbar.title = listName
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_back_bold)
         setSupportActionBar(toolbar)
         toolbar.setNavigationOnClickListener {
             finish()
@@ -89,6 +118,31 @@ class TasksActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupSwipeToDelete() {
+        val swipeHandler = object : SwipeToDeleteCallback(this) {
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                val task = adapter.currentList[position]
+
+                // Eliminar la tarea
+                taskViewModel.deleteTask(task)
+
+                // Mostrar Snackbar con opción de deshacer
+                Snackbar.make(
+                    recyclerView,
+                    "Tarea eliminada",
+                    Snackbar.LENGTH_LONG
+                ).setAction("DESHACER") {
+                    // Restaurar la tarea
+                    taskViewModel.insertTask(task)
+                }.show()
+            }
+        }
+
+        val itemTouchHelper = ItemTouchHelper(swipeHandler)
+        itemTouchHelper.attachToRecyclerView(recyclerView)
+    }
+
     private fun observeTasks() {
         if (listId != -1) {
             taskViewModel.getTasksForList(listId).observe(this) { tasks ->
@@ -112,8 +166,44 @@ class TasksActivity : AppCompatActivity() {
                 shareList()
                 true
             }
+            R.id.action_delete_completed -> {
+                deleteCompletedTasks()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun deleteCompletedTasks() {
+        val completedTasks = currentTasks.filter { it.isCompleted }
+
+        if (completedTasks.isEmpty()) {
+            Toast.makeText(this, "No hay tareas completadas para eliminar", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Eliminar tareas completadas")
+            .setMessage("¿Estás seguro de que quieres eliminar ${completedTasks.size} tarea(s) completada(s)?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                val deletedTasks = completedTasks.toList()
+
+                completedTasks.forEach { task ->
+                    taskViewModel.deleteTask(task)
+                }
+
+                Snackbar.make(
+                    recyclerView,
+                    "${completedTasks.size} tarea(s) eliminada(s)",
+                    Snackbar.LENGTH_LONG
+                ).setAction("DESHACER") {
+                    deletedTasks.forEach { task ->
+                        taskViewModel.insertTask(task)
+                    }
+                }.show()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun shareList() {
@@ -122,28 +212,20 @@ class TasksActivity : AppCompatActivity() {
             return
         }
 
-        // Crear objeto compartible
         val sharedTasks = currentTasks.map { task ->
             SharedTask(task.title, task.isCompleted)
         }
         val sharedList = SharedTaskList(listName, listColor, sharedTasks)
 
-        // Convertir a JSON
         val gson = Gson()
         val json = gson.toJson(sharedList)
-
-        // Codificar en Base64
         val encodedData = Base64.encodeToString(json.toByteArray(), Base64.URL_SAFE or Base64.NO_WRAP)
-
-        // Crear enlace de GitHub Pages (HTTPS clickeable)
         val shareLink = "https://manucho89.github.io/todolist/?data=$encodedData"
 
-        // Crear mensaje para WhatsApp
         val message = "📋 *${listName}*\n\n" +
                 "Te comparto mi lista de tareas (${currentTasks.size} tareas)\n\n" +
                 "Haz clic aquí para importarla en tu app:\n$shareLink"
 
-        // Compartir por WhatsApp
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, message)
@@ -153,7 +235,6 @@ class TasksActivity : AppCompatActivity() {
         try {
             startActivity(intent)
         } catch (e: Exception) {
-            // Si WhatsApp no está instalado, usar compartir genérico
             val genericIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, message)
@@ -168,14 +249,9 @@ class TasksActivity : AppCompatActivity() {
 
         if (encodedData != null) {
             try {
-                // Decodificar Base64
                 val json = String(Base64.decode(encodedData, Base64.URL_SAFE))
-
-                // Parsear JSON
                 val gson = Gson()
                 val sharedList = gson.fromJson(json, SharedTaskList::class.java)
-
-                // Mostrar diálogo de confirmación
                 showImportDialog(sharedList)
             } catch (e: Exception) {
                 Log.e("TasksActivity", "Error al procesar deep link", e)
@@ -202,15 +278,12 @@ class TasksActivity : AppCompatActivity() {
     }
 
     private fun importList(sharedList: SharedTaskList) {
-        // Crear nueva lista
         val newList = TaskList(
             name = sharedList.listName,
             color = sharedList.listColor
         )
 
-        // Insertar lista y luego las tareas
         listViewModel.insertListWithCallback(newList) { newListId ->
-            // Insertar tareas
             sharedList.tasks.forEach { sharedTask ->
                 val task = Task(
                     title = sharedTask.title,
@@ -222,8 +295,6 @@ class TasksActivity : AppCompatActivity() {
 
             runOnUiThread {
                 Toast.makeText(this, "Lista importada correctamente", Toast.LENGTH_SHORT).show()
-
-                // Abrir MainActivity para ver la lista importada
                 val intent = Intent(this, MainActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
                 startActivity(intent)
@@ -233,12 +304,14 @@ class TasksActivity : AppCompatActivity() {
     }
 
     private fun showAddTaskDialog() {
-        val editText = EditText(this)
-        editText.hint = "Título de la tarea"
+        // Crear un layout personalizado con EditText y botón de voz
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_task, null)
+        val editText = dialogView.findViewById<EditText>(R.id.editTextTaskTitle)
+        val voiceButton = dialogView.findViewById<ImageButton>(R.id.buttonVoiceInput)
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("Nueva Tarea")
-            .setView(editText)
+            .setView(dialogView)
             .setPositiveButton("Crear") { _, _ ->
                 val taskTitle = editText.text.toString()
                 if (taskTitle.isNotBlank()) {
@@ -251,7 +324,33 @@ class TasksActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancelar", null)
-            .show()
+            .create()
+
+        // Configurar botón de voz
+        voiceButton.setOnClickListener {
+            dialog.dismiss()
+            startVoiceRecognitionForTask()
+        }
+
+        dialog.show()
+    }
+
+    private fun startVoiceRecognitionForTask() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Di el nombre de la tarea")
+        }
+
+        try {
+            speechRecognizerLauncher.launch(intent)
+        } catch (e: Exception) {
+            Toast.makeText(
+                this,
+                "Tu dispositivo no soporta reconocimiento de voz",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun showDeleteConfirmation(task: Task) {
@@ -260,6 +359,14 @@ class TasksActivity : AppCompatActivity() {
             .setMessage("¿Estás seguro de que quieres eliminar '${task.title}'?")
             .setPositiveButton("Eliminar") { _, _ ->
                 taskViewModel.deleteTask(task)
+
+                Snackbar.make(
+                    recyclerView,
+                    "Tarea eliminada",
+                    Snackbar.LENGTH_LONG
+                ).setAction("DESHACER") {
+                    taskViewModel.insertTask(task)
+                }.show()
             }
             .setNegativeButton("Cancelar", null)
             .show()
