@@ -21,4 +21,10 @@ interface TaskDao {
 
     @Delete
     suspend fun deleteTask(task: Task)
+
+    @Query("SELECT * FROM tasks WHERE isPriority = 1 ORDER BY id DESC")
+    fun getAllImportantTasks(): Flow<List<Task>>
+
+    @Query("SELECT COUNT(*) FROM tasks WHERE isPriority = 1")
+    suspend fun getImportantTasksCount(): Int
 }

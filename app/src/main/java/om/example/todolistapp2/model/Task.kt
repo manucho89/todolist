@@ -20,5 +20,6 @@ data class Task(
     val id: Int = 0,
     val title: String,
     var isCompleted: Boolean = false,
+    var isPriority: Boolean = false,    // ⭐ NUEVA LÍNEA
     val listId: Int
 )

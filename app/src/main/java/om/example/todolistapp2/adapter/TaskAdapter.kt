@@ -15,19 +15,23 @@ import com.example.todolistapp2.model.Task
 
 class TaskAdapter(
     private val onTaskChecked: (Task) -> Unit,
-    private val onTaskDelete: (Task) -> Unit
+    private val onTaskDelete: (Task) -> Unit,
+    private val onTaskPriorityChanged: (Task) -> Unit,
+    private val onTaskLongClick: (Task) -> Unit  // ⭐ NUEVO callback para long click
 ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(DiffCallback()) {
 
     inner class TaskViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val checkBox: CheckBox = itemView.findViewById(R.id.checkBoxTask)
         val textViewTitle: TextView = itemView.findViewById(R.id.textViewTaskTitle)
         val buttonDelete: ImageButton = itemView.findViewById(R.id.buttonDeleteTask)
+        val buttonPriority: ImageButton = itemView.findViewById(R.id.buttonPriority)
 
         fun bind(task: Task) {
             textViewTitle.text = task.title
             checkBox.isChecked = task.isCompleted
 
-            // Tachar el texto si está completada
+            updatePriorityIcon(task.isPriority)
+
             if (task.isCompleted) {
                 textViewTitle.paintFlags = textViewTitle.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
                 textViewTitle.alpha = 0.5f
@@ -41,8 +45,29 @@ class TaskAdapter(
                 onTaskChecked(updatedTask)
             }
 
+            buttonPriority.setOnClickListener {
+                val updatedTask = task.copy(isPriority = !task.isPriority)
+                onTaskPriorityChanged(updatedTask)
+            }
+
             buttonDelete.setOnClickListener {
                 onTaskDelete(task)
+            }
+
+            // ⭐ NUEVO: Long click en toda la tarea
+            itemView.setOnLongClickListener {
+                onTaskLongClick(task)
+                true
+            }
+        }
+
+        private fun updatePriorityIcon(isPriority: Boolean) {
+            if (isPriority) {
+                buttonPriority.setImageResource(android.R.drawable.star_big_on)
+                buttonPriority.setColorFilter(android.graphics.Color.parseColor("#FFC107"))
+            } else {
+                buttonPriority.setImageResource(android.R.drawable.star_big_off)
+                buttonPriority.clearColorFilter()
             }
         }
     }

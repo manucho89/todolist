@@ -7,7 +7,7 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.todolistapp2.database.AppDatabase
 import com.example.todolistapp2.model.TaskList
-import com.example.todolistapp2.model.TaskListWithCount
+import com.example.todolistapp2.model.TaskListWithCountExtended
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -17,12 +17,25 @@ class TaskListViewModel(application: Application) : AndroidViewModel(application
     private val taskListDao = database.taskListDao()
     private val taskDao = database.taskDao()
 
-    val allListsWithCount: LiveData<List<TaskListWithCount>> = taskListDao.getAllLists()
+    val allListsWithCount: LiveData<List<TaskListWithCountExtended>> = taskListDao.getAllLists()
         .map { lists ->
-            lists.map { list ->
+            val result = mutableListOf<TaskListWithCountExtended>()
+
+            val importantCount = taskDao.getImportantTasksCount()
+            result.add(
+                TaskListWithCountExtended(
+                    taskList = TaskList(id = -2, name = "⭐ Tareas Importantes", color = 0xFFFFC107.toInt()),
+                    taskCount = importantCount,
+                    isSpecialImportant = true
+                )
+            )
+
+            result.addAll(lists.map { list ->
                 val count = taskDao.getTaskCountForList(list.id)
-                TaskListWithCount(list, count)
-            }
+                TaskListWithCountExtended(list, count, false)
+            })
+
+            result
         }
         .asLiveData()
 

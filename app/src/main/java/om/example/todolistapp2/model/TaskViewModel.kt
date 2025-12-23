@@ -35,4 +35,8 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
             taskDao.deleteTask(task)
         }
     }
+
+    fun getAllImportantTasks(): LiveData<List<Task>> {
+        return taskDao.getAllImportantTasks().asLiveData()
+    }
 }

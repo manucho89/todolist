@@ -9,20 +9,20 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolistapp2.R
 import com.example.todolistapp2.model.TaskList
-import com.example.todolistapp2.model.TaskListWithCount
+import com.example.todolistapp2.model.TaskListWithCountExtended
 
 class TaskListAdapter(
     private val onListClick: (TaskList) -> Unit,
     private val onListLongClick: (TaskList) -> Unit
-) : ListAdapter<TaskListWithCount, TaskListAdapter.TaskListViewHolder>(DiffCallback()) {
+) : ListAdapter<TaskListWithCountExtended, TaskListAdapter.TaskListViewHolder>(DiffCallback()) {
 
     inner class TaskListViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val colorIndicator: View = itemView.findViewById(R.id.colorIndicator)
         val textViewListName: TextView = itemView.findViewById(R.id.textViewListName)
         val textViewTaskCount: TextView = itemView.findViewById(R.id.textViewTaskCount)
 
-        fun bind(taskListWithCount: TaskListWithCount) {
-            val taskList = taskListWithCount.taskList
+        fun bind(taskListWithCount: TaskListWithCountExtended) {
+            val taskList = taskListWithCount.taskList ?: return
             colorIndicator.setBackgroundColor(taskList.color)
             textViewListName.text = taskList.name
             textViewTaskCount.text = "${taskListWithCount.taskCount} tareas"
@@ -31,9 +31,14 @@ class TaskListAdapter(
                 onListClick(taskList)
             }
 
-            itemView.setOnLongClickListener {
-                onListLongClick(taskList)
-                true
+            // ⭐ No permitir long click en la entrada especial
+            if (taskListWithCount.isSpecialImportant) {
+                itemView.setOnLongClickListener(null)
+            } else {
+                itemView.setOnLongClickListener {
+                    onListLongClick(taskList)
+                    true
+                }
             }
         }
     }
@@ -48,12 +53,12 @@ class TaskListAdapter(
         holder.bind(getItem(position))
     }
 
-    private class DiffCallback : DiffUtil.ItemCallback<TaskListWithCount>() {
-        override fun areItemsTheSame(oldItem: TaskListWithCount, newItem: TaskListWithCount): Boolean {
-            return oldItem.taskList.id == newItem.taskList.id
+    private class DiffCallback : DiffUtil.ItemCallback<TaskListWithCountExtended>() {
+        override fun areItemsTheSame(oldItem: TaskListWithCountExtended, newItem: TaskListWithCountExtended): Boolean {
+            return oldItem.taskList?.id == newItem.taskList?.id
         }
 
-        override fun areContentsTheSame(oldItem: TaskListWithCount, newItem: TaskListWithCount): Boolean {
+        override fun areContentsTheSame(oldItem: TaskListWithCountExtended, newItem: TaskListWithCountExtended): Boolean {
             return oldItem == newItem
         }
     }

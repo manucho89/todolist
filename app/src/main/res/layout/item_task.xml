@@ -30,6 +30,16 @@
             android:textSize="16sp"
             android:textColor="?android:attr/textColorPrimary" />
 
+        <!-- ⭐ NUEVO: Botón de estrella para marcar como importante -->
+        <ImageButton
+            android:id="@+id/buttonPriority"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Marcar como importante"
+            android:src="@android:drawable/star_big_off"
+            android:layout_marginEnd="8dp" />
+
         <ImageButton
             android:id="@+id/buttonDeleteTask"
             android:layout_width="wrap_content"

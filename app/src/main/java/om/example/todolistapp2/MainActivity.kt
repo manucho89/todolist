@@ -32,7 +32,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var switchTheme: SwitchMaterial
     private val viewModel: TaskListViewModel by viewModels()
 
-    // Launcher para reconocimiento de voz
     private val speechRecognizerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -40,7 +39,6 @@ class MainActivity : AppCompatActivity() {
             val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 ?.get(0) ?: return@registerForActivityResult
 
-            // Crear la lista con el texto dictado
             if (spokenText.isNotBlank()) {
                 val newList = TaskList(
                     name = spokenText,
@@ -55,7 +53,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Aplicar tema guardado ANTES de setContentView
         val sharedPreferences = getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
         val isDarkMode = sharedPreferences.getBoolean("dark_mode", false)
         if (isDarkMode) {
@@ -66,27 +63,21 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
 
-        // Configurar switch de tema
         switchTheme = findViewById(R.id.switchTheme)
         switchTheme.isChecked = isDarkMode
 
-        // Configurar listener del switch
         switchTheme.setOnCheckedChangeListener { _, isChecked ->
-            // Guardar preferencia
             sharedPreferences.edit().putBoolean("dark_mode", isChecked).apply()
 
-            // Cambiar tema
             if (isChecked) {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
             } else {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
             }
 
-            // Recrear activity para aplicar el tema inmediatamente
             recreate()
         }
 
-        // Configurar RecyclerView
         recyclerView = findViewById(R.id.recyclerViewLists)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
@@ -101,15 +92,12 @@ class MainActivity : AppCompatActivity() {
 
         recyclerView.adapter = adapter
 
-        // Configurar swipe to delete para listas
         setupSwipeToDelete()
 
-        // Observar cambios en las listas
         viewModel.allListsWithCount.observe(this) { listsWithCount ->
             adapter.submitList(listsWithCount)
         }
 
-        // Configurar botón flotante
         val fabAddList: FloatingActionButton = findViewById(R.id.fabAddList)
         fabAddList.setOnClickListener {
             showAddListDialog()
@@ -121,15 +109,20 @@ class MainActivity : AppCompatActivity() {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
                 val listWithCount = adapter.currentList[position]
-                val taskList = listWithCount.taskList
 
-                // Guardar la lista para poder deshacerlo
+                // ⭐ No permitir eliminar la entrada especial
+                if (listWithCount.isSpecialImportant) {
+                    adapter.notifyItemChanged(position)
+                    Toast.makeText(this@MainActivity, "No se puede eliminar esta lista especial", Toast.LENGTH_SHORT).show()
+                    return
+                }
+
+                val taskList = listWithCount.taskList ?: return
+
                 val deletedList = taskList
 
-                // Eliminar la lista
                 viewModel.deleteList(taskList)
 
-                // Mostrar Snackbar con opción de deshacer
                 val taskCount = listWithCount.taskCount
                 val message = if (taskCount > 0) {
                     "Lista \"${taskList.name}\" eliminada ($taskCount tarea(s))"
@@ -142,7 +135,6 @@ class MainActivity : AppCompatActivity() {
                     message,
                     Snackbar.LENGTH_LONG
                 ).setAction("DESHACER") {
-                    // Restaurar la lista
                     viewModel.insertList(deletedList)
                 }.show()
             }
@@ -192,13 +184,11 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("Eliminar") { _, _ ->
                 viewModel.deleteList(taskList)
 
-                // Mostrar Snackbar con opción de deshacer
                 Snackbar.make(
                     recyclerView,
                     "Lista \"${taskList.name}\" eliminada",
                     Snackbar.LENGTH_LONG
                 ).setAction("DESHACER") {
-                    // Restaurar la lista
                     viewModel.insertList(taskList)
                 }.show()
             }
@@ -207,7 +197,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAddListDialog() {
-        // Crear un layout personalizado con EditText y botón de voz
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_list, null)
         val editText = dialogView.findViewById<EditText>(R.id.editTextListName)
         val voiceButton = dialogView.findViewById<ImageButton>(R.id.buttonVoiceInput)
@@ -228,7 +217,6 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Cancelar", null)
             .create()
 
-        // Configurar botón de voz
         voiceButton.setOnClickListener {
             dialog.dismiss()
             startVoiceRecognitionForList()
@@ -257,15 +245,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun getRandomColor(): Int {
         val colors = listOf(
-            0xFFE91E63.toInt(), // Rosa
-            0xFF9C27B0.toInt(), // Púrpura
-            0xFF673AB7.toInt(), // Púrpura oscuro
-            0xFF3F51B5.toInt(), // Índigo
-            0xFF2196F3.toInt(), // Azul
-            0xFF009688.toInt(), // Verde azulado
-            0xFF4CAF50.toInt(), // Verde
-            0xFFFF9800.toInt(), // Naranja
-            0xFFFF5722.toInt()  // Naranja oscuro
+            0xFFE91E63.toInt(),
+            0xFF9C27B0.toInt(),
+            0xFF673AB7.toInt(),
+            0xFF3F51B5.toInt(),
+            0xFF2196F3.toInt(),
+            0xFF009688.toInt(),
+            0xFF4CAF50.toInt(),
+            0xFFFF9800.toInt(),
+            0xFFFF5722.toInt()
         )
         return colors[Random.nextInt(colors.size)]
     }
